@@ -111,7 +111,6 @@ class pixel_queue
 {
 public:
 	vector<pixel*> pixels;
-	int current_index = 0;
 
 	pixel_queue() {}
 
@@ -122,17 +121,14 @@ public:
 
 	pixel* pop()
 	{
-		if (current_index >= pixels.size())
-		{
-			return nullptr;
-		}
-		return pixels[current_index];
-		current_index++;
+		pixel* pixel = pixels[0];
+		pixels.erase(pixels.begin());
+		return pixel;
 	}
 
 	bool empty()
 	{
-		return current_index >= pixels.size();
+		return pixels.empty();
 	}
 };
 
@@ -157,10 +153,10 @@ public:
 			{
 				pixel* pixel = &image.head[i][j];
 
-				// continue if color is white
+				// mark the pixel as visited if the color is white
 				if (pixel->color == sf::Color::White)
 				{
-					continue;
+					pixel->visited = true;
 				}
 
 				// continue if pixel has been visited
@@ -168,6 +164,9 @@ public:
 				{
 					continue;
 				}
+
+				// having passed the first two basic tests, mark the pixel as visited
+				pixel->visited = true;
 
 				// make a new province if a province of that color does not already exist
 				if (novel_color(&pixel->color))
@@ -177,7 +176,7 @@ public:
 					provinces.push_back(new_province);
 				}
 
-				// get province for whom we will now give a new polygon
+				// get a pointer to the province of the correct color
 				province* this_province = &provinces[0]; // default to avoid null pointer
 				for (int i = 0; i < provinces.size(); i++)
 				{
@@ -191,7 +190,6 @@ public:
 				polygon new_polygon;
 				flood(&new_polygon, pixel);
 				this_province->polygons.push_back(new_polygon);
-
 			}
 		}
 	}
@@ -209,13 +207,13 @@ public:
 		return true;
 	}
 
-	void flood(polygon* poly, pixel* origin_pixel)
-	{
+	void flood(polygon* poly, pixel* origional_pixel)
+	{	
 		traversable_image& image = *image_ptr;
 		
 		pixel_queue queue;
-		queue.push(origin_pixel);
-
+		queue.push(origional_pixel);
+		
 		while (true)
 		{
 			if (queue.empty())
@@ -225,28 +223,30 @@ public:
 
 			pixel* popped_pixel = queue.pop();
 			poly->pixels.push_back(popped_pixel);
-			
-			// get each of the four cardinal neighbours
+			cout << poly->pixels.size() << "\n";
+
+			int i = popped_pixel->i;
+			int j = popped_pixel->j;
 			pixel* neighbours[4]
 			{
-				&image.head[popped_pixel->i + 1][popped_pixel->j],
-				&image.head[popped_pixel->i - 1][popped_pixel->j],
-				&image.head[popped_pixel->i][popped_pixel->j + 1],
-				&image.head[popped_pixel->i][popped_pixel->j - 1]
+				&image.head[i + 1][j],
+				&image.head[i - 1][j],
+				&image.head[i][j + 1],
+				&image.head[i][j - 1]
 			};
 
-			// for each of those four pixels, add them to the queue if they have not been visited and if they are the right color
-			for (pixel* neighbour : neighbours)
+			for (int i = 0; i < 4; i++)
 			{
-				if (neighbour->color != origin_pixel->color)
-				{
-					continue;
-				}
+				pixel* neighbour = neighbours[i];
 				if (neighbour->visited)
 				{
 					continue;
 				}
 				neighbour->visited = true;
+				if (neighbour->color != origional_pixel->color)
+				{
+					continue;
+				}
 				queue.push(neighbour);
 			}
 		}
