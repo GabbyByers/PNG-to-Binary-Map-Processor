@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include "SFML/Graphics.hpp"
+#include "mouse.h"
 
 using namespace std;
 #define _CRTDBG_MAP_ALLOC
@@ -69,35 +70,126 @@ public:
 	}
 };
 
-struct vertex
+class vertex
 {
-	int i = -1;
-	int j = -1;
+public:
+	int i = 0;
+	int j = 0;
 	vertex* prev = nullptr;
 	vertex* next = nullptr;
+
+	vertex(int _i, int _j)
+	{
+		i = _i;
+		j = _j;
+	}
 };
 
 class polygon
 {
 public:
+	traversable_image* image_ptr = nullptr;
 	vector<pixel*> pixels;
-	vector<vertex> unsorted_vertices;
-	vector<vertex> sorted_vertices;
+	vector<vertex> vertices;
 
-	polygon() {}
-
-	void sort_vertices()
+	polygon(traversable_image* _image_ptr)
 	{
-		assign_prev_and_next();
+		image_ptr = _image_ptr;
 	}
 
-	void assign_prev_and_next() // TODO: implement
+	void initialize_vertices()
 	{
-		for (int i = 0; i < unsorted_vertices.size(); i++)
-		{
-			vertex* vertex = &unsorted_vertices[i];
+		traversable_image& image = *image_ptr;
 
+		for (pixel* this_pixel : pixels)
+		{
+			int i = 2 * this_pixel->i;
+			int j = 2 * this_pixel->j;
+
+			pixel* t_pixel = &image.head[this_pixel->i - 1][this_pixel->j];
+			pixel* b_pixel = &image.head[this_pixel->i + 1][this_pixel->j];
+			pixel* l_pixel = &image.head[this_pixel->i][this_pixel->j - 1];
+			pixel* r_pixel = &image.head[this_pixel->i][this_pixel->j + 1];
+
+			sf::Color& center = this_pixel->color;
+			sf::Color& top    = t_pixel->color;
+			sf::Color& bottom = b_pixel->color;
+			sf::Color& left   = l_pixel->color;
+			sf::Color& right  = r_pixel->color;
+
+			//TOP
+			if (center != top)
+			{
+				vertex new_vertex(i + 1, j);
+				vertices.push_back(new_vertex);
+			}
+
+			//BOTTOM
+			if (center != bottom)
+			{
+				vertex new_vertex(i + 1, j + 2);
+				vertices.push_back(new_vertex);
+			}
+
+			//LEFT
+			if (center != left)
+			{
+				vertex new_vertex(i, j + 1);
+				vertices.push_back(new_vertex);
+			}
+
+			//RIGHT
+			if (center != right)
+			{
+				vertex new_vertex(i + 2, j + 1);
+				vertices.push_back(new_vertex);
+			}
+
+			//TOP LEFT
+			if (center != top && center != left)
+			{
+				if (top != left)
+				{
+					vertex new_vertex(i, j);
+					vertices.push_back(new_vertex);
+				}
+			}
+
+			//TOP RIGHT
+			if (center != top && center != right)
+			{
+				if (top != right)
+				{
+					vertex new_vertex(i + 2, j);
+					vertices.push_back(new_vertex);
+				}
+			}
+
+			//BOTTOM LEFT
+			if (center != bottom && center != left)
+			{
+				if (bottom != left)
+				{
+					vertex new_vertex(i, j + 2);
+					vertices.push_back(new_vertex);
+				}
+			}
+
+			//BOTTOM RIGHT
+			if (center != bottom && center != right)
+			{
+				if (bottom != right)
+				{
+					vertex new_vertex(i + 2, j + 2);
+					vertices.push_back(new_vertex);
+				}
+			}
 		}
+	}
+	
+	void remove_duplicate_vertices()
+	{
+
 	}
 };
 
@@ -142,7 +234,7 @@ public:
 	{
 		image_ptr = new traversable_image(filename);
 		populate_provinces();
-		validate_polygons();
+		process_polygons();
 	}
 
 	void populate_provinces()
@@ -188,7 +280,7 @@ public:
 					}
 				}
 
-				polygon new_polygon;
+				polygon new_polygon(image_ptr);
 				flood(&new_polygon, pixel);
 				this_province->polygons.push_back(new_polygon);
 			}
@@ -224,7 +316,6 @@ public:
 
 			pixel* popped_pixel = queue.pop();
 			poly->pixels.push_back(popped_pixel);
-			cout << poly->pixels.size() << "\n";
 
 			int i = popped_pixel->i;
 			int j = popped_pixel->j;
@@ -253,43 +344,15 @@ public:
 		}
 	}
 
-	void validate_polygons()
+	void process_polygons()
 	{
 		for (province& prov : provinces)
 		{
 			for (polygon& poly : prov.polygons)
 			{
-				int num_pixels = poly.pixels.size();
-				for (int i = 0; i < num_pixels; i++)
-				{
-					for (int j = 0; j < num_pixels; j++)
-					{
-						if (i == j)
-						{
-							cout << "here";
-							continue;
-						}
-						if (poly.pixels[i] == poly.pixels[j])
-						{
-							cout << "BAD BAD BAD THIS SHOULD NOT BE HAPPENING RIGHT NOW OH NO :( \n";
-						}
-					}
-				}
+				poly.initialize_vertices();
+				poly.remove_duplicate_vertices();
 			}
-		}
-		cout << "   all tests passed?";
-
-		for (province& prov : provinces)
-		{
-			for (polygon& poly : prov.polygons)
-			{
-				cout << "\n" << poly.pixels.size();
-			}
-		}
-
-		for (province& prov : provinces)
-		{
-			cout << "\n" << prov.polygons.size();
 		}
 	}
 };
@@ -297,22 +360,63 @@ public:
 int main()
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	sf::RenderWindow window(sf::VideoMode(500, 500), "Hello SFML", sf::Style::Close);
+	int screen_width = 1500;
+	int screen_height = 800;
+
+	sf::RenderWindow window(sf::VideoMode(screen_width, screen_height), "Hello SFML", sf::Style::Close);
+	Mouse mouse(screen_width, screen_height);
 	sf::Event event;
 	
-	world world("test.png");
+	world world("japan.png");
+
+	vector<sf::Vertex> squares;
+	float x_offset = 0;
+	float y_offset = 0;
+	float zoom = 0.1;
+	float scale = 1;
+
 
 	while (window.isOpen())
 	{
+		mouse.setMouseProperties(sf::Mouse::getPosition(window));
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
 			{
 				window.close();
 			}
+			if (event.type == sf::Event::MouseWheelMoved)
+			{
+				scale *= 1 + (event.mouseWheel.delta * zoom);
+				x_offset += (mouse.x - x_offset) * (-1 * zoom * event.mouseWheel.delta);
+				y_offset += (mouse.y - y_offset) * (-1 * zoom * event.mouseWheel.delta);
+			}
+		}
+
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+		{
+			x_offset += mouse.rel_x;
+			y_offset += mouse.rel_y;
+		}
+
+		squares.clear();
+		for (province& province : world.provinces)
+		{
+			for (polygon& polygon : province.polygons)
+			{
+				for (pixel* p_pixel : polygon.pixels)
+				{
+					pixel& pixel = *p_pixel;
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset,         scale * pixel.j + y_offset), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset + scale, scale * pixel.j + y_offset), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset + scale, scale * pixel.j + y_offset + scale), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset,         scale * pixel.j + y_offset + scale), pixel.color));
+				}
+			}
 		}
 
 		window.clear(sf::Color::Black);
+		window.draw(&squares[0], squares.size(), sf::Quads);
 		window.display();
 	}
 
