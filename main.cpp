@@ -142,6 +142,7 @@ public:
 	{
 		image_ptr = new traversable_image(filename);
 		populate_provinces();
+		validate_polygons();
 	}
 
 	void populate_provinces()
@@ -251,6 +252,46 @@ public:
 			}
 		}
 	}
+
+	void validate_polygons()
+	{
+		for (province& prov : provinces)
+		{
+			for (polygon& poly : prov.polygons)
+			{
+				int num_pixels = poly.pixels.size();
+				for (int i = 0; i < num_pixels; i++)
+				{
+					for (int j = 0; j < num_pixels; j++)
+					{
+						if (i == j)
+						{
+							cout << "here";
+							continue;
+						}
+						if (poly.pixels[i] == poly.pixels[j])
+						{
+							cout << "BAD BAD BAD THIS SHOULD NOT BE HAPPENING RIGHT NOW OH NO :( \n";
+						}
+					}
+				}
+			}
+		}
+		cout << "   all tests passed?";
+
+		for (province& prov : provinces)
+		{
+			for (polygon& poly : prov.polygons)
+			{
+				cout << "\n" << poly.pixels.size();
+			}
+		}
+
+		for (province& prov : provinces)
+		{
+			cout << "\n" << prov.polygons.size();
+		}
+	}
 };
 
 int main()
@@ -259,7 +300,7 @@ int main()
 	sf::RenderWindow window(sf::VideoMode(500, 500), "Hello SFML", sf::Style::Close);
 	sf::Event event;
 	
-	world world("japan.png");
+	world world("test.png");
 
 	while (window.isOpen())
 	{
