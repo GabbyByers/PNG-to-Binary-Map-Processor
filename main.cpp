@@ -370,7 +370,7 @@ int main()
 	mouse mouse(screen_width, screen_height);
 	sf::Event event;
 	
-	world world("japan.png");
+	world world("images/japan.png");
 
 	vector<sf::Vertex> squares;
 	float x_offset = 0;
