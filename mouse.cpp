@@ -1,42 +1,42 @@
 #include "mouse.h"
 
-Mouse::Mouse(int w, int h)
+mouse::mouse(int width, int height)
 {
-    width = w;
-    height = h;
+    screen_width = width;
+    screen_height = height;
 }
 
-void Mouse::setMouseProperties(sf::Vector2i vect)
+void mouse::set_mouse_properties(sf::Vector2i vect)
 {
-    checkMouseOverScreen(vect);
-    setMousePosition(vect);
-    getRelativeMouseMovement(vect);
+    check_mouse_over_screen(vect);
+    set_mouse_position(vect);
+    get_relative_mouse_movement(vect);
 }
 
-void Mouse::checkMouseOverScreen(sf::Vector2i vect)
+void mouse::check_mouse_over_screen(sf::Vector2i vect)
 {
-    isOverScreen = false;
-    if (0 < vect.x && vect.x < width)
+    is_over_screen = false;
+    if (0 < vect.x && vect.x < screen_width)
     {
-        if (0 < vect.y && vect.y < height)
+        if (0 < vect.y && vect.y < screen_height)
         {
-            isOverScreen = true;
+            is_over_screen = true;
         }
     }
 }
 
-void Mouse::setMousePosition(sf::Vector2i vect) {
-    if (0 < vect.x && vect.x < width)
+void mouse::set_mouse_position(sf::Vector2i vect) {
+    if (0 < vect.x && vect.x < screen_width)
     {
         x = vect.x;
     }
-    if (0 < vect.y && vect.y < height)
+    if (0 < vect.y && vect.y < screen_height)
     {
         y = vect.y;
     }
 }
 
-void Mouse::getRelativeMouseMovement(sf::Vector2i vect)
+void mouse::get_relative_mouse_movement(sf::Vector2i vect)
 {
     rel_x = vect.x - prev_x;
     rel_y = vect.y - prev_y;

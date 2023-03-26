@@ -1,7 +1,7 @@
 #include <SFML/Graphics.hpp>
 #pragma once
 
-class Mouse {
+class mouse {
 public:
     int x = 0;
     int y = 0;
@@ -9,17 +9,17 @@ public:
     int prev_y = 0;
     int rel_x = 0;
     int rel_y = 0;
-    int width = 0;
-    int height = 0;
-    bool isOverScreen = false;
+    int screen_width = 0;
+    int screen_height = 0;
+    bool is_over_screen = false;
 
-    Mouse(int w, int h);
+    mouse(int width, int height);
 
-    void setMouseProperties(sf::Vector2i vect);
+    void set_mouse_properties(sf::Vector2i vect);
 
-    void checkMouseOverScreen(sf::Vector2i vect);
+    void check_mouse_over_screen(sf::Vector2i vect);
 
-    void setMousePosition(sf::Vector2i vect);
+    void set_mouse_position(sf::Vector2i vect);
 
-    void getRelativeMouseMovement(sf::Vector2i vect);
+    void get_relative_mouse_movement(sf::Vector2i vect);
 };

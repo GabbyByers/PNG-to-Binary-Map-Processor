@@ -77,6 +77,7 @@ public:
 	int j = 0;
 	vertex* prev = nullptr;
 	vertex* next = nullptr;
+	char variant = '\0';
 
 	vertex(int _i, int _j)
 	{
@@ -106,10 +107,10 @@ public:
 			int i = 2 * this_pixel->i;
 			int j = 2 * this_pixel->j;
 
-			pixel* t_pixel = &image.head[this_pixel->i - 1][this_pixel->j];
-			pixel* b_pixel = &image.head[this_pixel->i + 1][this_pixel->j];
-			pixel* l_pixel = &image.head[this_pixel->i][this_pixel->j - 1];
-			pixel* r_pixel = &image.head[this_pixel->i][this_pixel->j + 1];
+			pixel* t_pixel = &image.head[this_pixel->i][this_pixel->j - 1];
+			pixel* b_pixel = &image.head[this_pixel->i][this_pixel->j + 1];
+			pixel* l_pixel = &image.head[this_pixel->i - 1][this_pixel->j];
+			pixel* r_pixel = &image.head[this_pixel->i + 1][this_pixel->j];
 
 			sf::Color& center = this_pixel->color;
 			sf::Color& top    = t_pixel->color;
@@ -121,6 +122,7 @@ public:
 			if (center != top)
 			{
 				vertex new_vertex(i + 1, j);
+				new_vertex.variant = 'H';
 				vertices.push_back(new_vertex);
 			}
 
@@ -128,6 +130,7 @@ public:
 			if (center != bottom)
 			{
 				vertex new_vertex(i + 1, j + 2);
+				new_vertex.variant = 'H';
 				vertices.push_back(new_vertex);
 			}
 
@@ -135,6 +138,7 @@ public:
 			if (center != left)
 			{
 				vertex new_vertex(i, j + 1);
+				new_vertex.variant = 'V';
 				vertices.push_back(new_vertex);
 			}
 
@@ -142,6 +146,7 @@ public:
 			if (center != right)
 			{
 				vertex new_vertex(i + 2, j + 1);
+				new_vertex.variant = 'V';
 				vertices.push_back(new_vertex);
 			}
 
@@ -151,6 +156,7 @@ public:
 				if (top != left)
 				{
 					vertex new_vertex(i, j);
+					new_vertex.variant = 'C';
 					vertices.push_back(new_vertex);
 				}
 			}
@@ -161,6 +167,7 @@ public:
 				if (top != right)
 				{
 					vertex new_vertex(i + 2, j);
+					new_vertex.variant = 'C';
 					vertices.push_back(new_vertex);
 				}
 			}
@@ -171,6 +178,7 @@ public:
 				if (bottom != left)
 				{
 					vertex new_vertex(i, j + 2);
+					new_vertex.variant = 'C';
 					vertices.push_back(new_vertex);
 				}
 			}
@@ -181,15 +189,11 @@ public:
 				if (bottom != right)
 				{
 					vertex new_vertex(i + 2, j + 2);
+					new_vertex.variant = 'C';
 					vertices.push_back(new_vertex);
 				}
 			}
 		}
-	}
-	
-	void remove_duplicate_vertices()
-	{
-
 	}
 };
 
@@ -334,11 +338,11 @@ public:
 				{
 					continue;
 				}
-				neighbour->visited = true;
 				if (neighbour->color != origional_pixel->color)
 				{
 					continue;
 				}
+				neighbour->visited = true;
 				queue.push(neighbour);
 			}
 		}
@@ -351,7 +355,6 @@ public:
 			for (polygon& poly : prov.polygons)
 			{
 				poly.initialize_vertices();
-				poly.remove_duplicate_vertices();
 			}
 		}
 	}
@@ -364,7 +367,7 @@ int main()
 	int screen_height = 800;
 
 	sf::RenderWindow window(sf::VideoMode(screen_width, screen_height), "Hello SFML", sf::Style::Close);
-	Mouse mouse(screen_width, screen_height);
+	mouse mouse(screen_width, screen_height);
 	sf::Event event;
 	
 	world world("japan.png");
@@ -374,11 +377,12 @@ int main()
 	float y_offset = 0;
 	float zoom = 0.1;
 	float scale = 1;
-
+	float small_scale = 0.2;
+	float margin = 0.05;
 
 	while (window.isOpen())
 	{
-		mouse.setMouseProperties(sf::Mouse::getPosition(window));
+		mouse.set_mouse_properties(sf::Mouse::getPosition(window));
 		while (window.pollEvent(event))
 		{
 			if (event.type == sf::Event::Closed)
@@ -400,6 +404,8 @@ int main()
 		}
 
 		squares.clear();
+
+		// pixels
 		for (province& province : world.provinces)
 		{
 			for (polygon& polygon : province.polygons)
@@ -407,10 +413,31 @@ int main()
 				for (pixel* p_pixel : polygon.pixels)
 				{
 					pixel& pixel = *p_pixel;
-					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset,         scale * pixel.j + y_offset), pixel.color));
-					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset + scale, scale * pixel.j + y_offset), pixel.color));
-					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset + scale, scale * pixel.j + y_offset + scale), pixel.color));
-					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset,         scale * pixel.j + y_offset + scale), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset,                            scale * pixel.j + y_offset), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset + (scale - scale * margin), scale * pixel.j + y_offset), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset + (scale - scale * margin), scale * pixel.j + y_offset + (scale - scale * margin)), pixel.color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * pixel.i + x_offset,                            scale * pixel.j + y_offset + (scale - scale * margin)), pixel.color));
+				}
+			}
+		}
+
+		// vertices
+		sf::Color vertex_color;
+		for (province& province : world.provinces)
+		{
+			for (polygon& polygon : province.polygons)
+			{
+				for (vertex& vertex : polygon.vertices)
+				{
+					float i = vertex.i / 2.0f;
+					float j = vertex.j / 2.0f;
+					if (vertex.variant == 'H') { vertex_color = sf::Color(255, 0, 0); }
+					if (vertex.variant == 'V') { vertex_color = sf::Color(0, 255, 0); }
+					if (vertex.variant == 'C') { vertex_color = sf::Color(255, 255, 255); }
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * i + x_offset - (0.5f * (scale * small_scale)),                         scale * j - (0.5f * (scale * small_scale)) + y_offset), vertex_color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * i + x_offset - (0.5f * (scale * small_scale)) + (scale * small_scale), scale * j - (0.5f * (scale * small_scale)) + y_offset), vertex_color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * i + x_offset - (0.5f * (scale * small_scale)) + (scale * small_scale), scale * j - (0.5f * (scale * small_scale)) + y_offset + (scale * small_scale)), vertex_color));
+					squares.push_back(sf::Vertex(sf::Vector2f(scale * i + x_offset - (0.5f * (scale * small_scale)),                         scale * j - (0.5f * (scale * small_scale)) + y_offset + (scale * small_scale)), vertex_color));
 				}
 			}
 		}
